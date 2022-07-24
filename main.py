@@ -1,36 +1,44 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
+import matplotlib.pyplot as plt
+import time
 
-st.title('Uber pickups in NYC')
+with st.spinner('Wait for it...'):
+    time.sleep(5)
 
-DATE_COLUMN = 'date/time'
-DATA_URL = ('https://s3-us-west-2.amazonaws.com/'
-            'streamlit-demo-data/uber-raw-data-sep14.csv.gz')
+# train, test 데이터 불러오기
+# 파일: data폴더 안에 train_review.csv, test_review.csv
+
+data_url = "data/"
 
 @st.cache
-def load_data(nrows):
-    data = pd.read_csv(DATA_URL, nrows=nrows)
-    lowercase = lambda x: str(x).lower()
-    data.rename(lowercase, axis='columns', inplace=True)
-    data[DATE_COLUMN] = pd.to_datetime(data[DATE_COLUMN])
-    return data
+def load_data(url, type):
+    df = pd.read_csv(f'{url}{type}_review.csv', encoding="utf-8", index_col="id")
+    return df
 
-data_load_state = st.text('Loading data...')
-data = load_data(10000)
-data_load_state.text("Done! (using st.cache)")
+train_data = load_data(data_url, "train")
+train_data_grd = pd.DataFrame(train_data["target"].value_counts(normalize=True))
 
-if st.checkbox('Show raw data'):
-    st.subheader('Raw data')
-    st.write(data)
+test_data = load_data(data_url, "test")
 
-st.subheader('Number of pickups by hour')
-hist_values = np.histogram(data[DATE_COLUMN].dt.hour, bins=24, range=(0,24))[0]
-st.bar_chart(hist_values)
+# data_page 표시
 
-# Some number in the range 0-23
-hour_to_filter = st.slider('hour', 0, 23, 17)
-filtered_data = data[data[DATE_COLUMN].dt.hour == hour_to_filter]
+st.markdown('### Shopping Reviews Data')
 
-st.subheader('Map of all pickups at %s:00' % hour_to_filter)
-st.map(filtered_data)
+## train data 나타내기
+with st.container():
+    
+    if st.button("Train Set", key="train"):
+        with st.container():
+            st.markdown("* Train data (25000개)")
+            st.dataframe(train_data)
+        with st.container():
+            st.markdown("* Train data 리뷰점수별 비중 (1점, 2점, 4점, 5점으로 구성)")
+            st.bar_chart(train_data_grd)
+
+## test data 나타내기
+with st.container():
+
+    if st.button("Test Set", key="test"):
+        st.markdown("* Test data (5000개)")
+        st.dataframe(test_data)
